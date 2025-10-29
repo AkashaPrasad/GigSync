@@ -1,9 +1,14 @@
+
+
 {
+  "homepage": "https://<AkashaPrasad>.github.io/<gigflow>",
   "name": "gigsync",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predeploy": "npm run build",
+"deploy": "gh-pages -d build",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
