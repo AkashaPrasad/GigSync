@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { onAuthStateChange, getCurrentUserData } from "@/integrations/firebase/auth";
+import { getProfile, updateProfile } from "@/integrations/firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, X } from "lucide-react";
+import { X } from "lucide-react";
+import Navigation from "@/components/Navigation";
 
-const WorkerProfile = () => {
+const WorkerProfileFirebase = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -18,26 +20,33 @@ const WorkerProfile = () => {
   const [newSkill, setNewSkill] = useState("");
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const unsubscribe = onAuthStateChange(async (user) => {
+      if (user) {
+        const userData = await getCurrentUserData();
+        if (userData && userData.role === "gig_worker") {
+          await fetchProfile(user.uid);
+        } else {
+          navigate("/auth");
+        }
+      } else {
+        navigate("/auth");
+      }
+    });
 
-  const fetchProfile = async () => {
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const fetchProfile = async (userId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const profileData = await getProfile(userId);
       
-      if (!user) {
+      if (!profileData) {
+        toast.error("Worker profile not found");
         navigate("/auth");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
+      setProfile(profileData);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -50,22 +59,19 @@ const WorkerProfile = () => {
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: profile.full_name,
-          location: profile.location,
-          phone: profile.phone,
-          skills: profile.skills || [],
-          availability_hours_per_day: profile.availability_hours_per_day,
-          availability_days_per_week: profile.availability_days_per_week,
-          expected_pay_per_hour: profile.expected_pay_per_hour,
-          experience_level: profile.experience_level,
-          languages_known: profile.languages_known || [],
-        })
-        .eq("id", profile.id);
+      if (!profile) {
+        toast.error("Profile not found");
+        return;
+      }
 
-      if (error) throw error;
+      await updateProfile(profile.id, {
+        fullName: profile.fullName,
+        phone: profile.phone,
+        bio: profile.bio,
+        expectedPayPerHour: profile.expectedPayPerHour,
+        experienceLevel: profile.experienceLevel,
+      });
+
       toast.success("Profile updated successfully!");
       navigate("/worker/dashboard");
     } catch (error: any) {
@@ -102,19 +108,24 @@ const WorkerProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate("/worker/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </header>
+      {/* Navigation */}
+      <Navigation 
+        backPath="/worker/dashboard"
+        showLogoutButton={true}
+        showSettingsButton={false}
+        showProfileButton={false}
+        showPostJobButton={false}
+      />
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Edit Your Profile</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl">Edit Your Profile</CardTitle>
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                Gig Worker Account
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSave} className="space-y-6">
@@ -122,23 +133,13 @@ const WorkerProfile = () => {
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
-                  value={profile.full_name}
-                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                  value={profile.fullName || ""}
+                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
                   required
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="City, Country"
-                    value={profile.location || ""}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
                   <Input
@@ -148,24 +149,24 @@ const WorkerProfile = () => {
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="experienceLevel">Experience Level</Label>
-                <Select
-                  value={profile.experience_level || ""}
-                  onValueChange={(value) => setProfile({ ...profile, experience_level: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select experience level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="expert">Expert</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="experienceLevel">Experience Level</Label>
+                  <Select
+                    value={profile.experienceLevel || ""}
+                    onValueChange={(value) => setProfile({ ...profile, experienceLevel: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select experience level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                      <SelectItem value="Expert">Expert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -197,47 +198,27 @@ const WorkerProfile = () => {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="hoursPerDay">Hours per Day</Label>
-                  <Input
-                    id="hoursPerDay"
-                    type="number"
-                    min="1"
-                    max="24"
-                    value={profile.availability_hours_per_day || ""}
-                    onChange={(e) =>
-                      setProfile({ ...profile, availability_hours_per_day: parseInt(e.target.value) })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="daysPerWeek">Days per Week</Label>
-                  <Input
-                    id="daysPerWeek"
-                    type="number"
-                    min="1"
-                    max="7"
-                    value={profile.availability_days_per_week || ""}
-                    onChange={(e) =>
-                      setProfile({ ...profile, availability_days_per_week: parseInt(e.target.value) })
-                    }
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Input
+                  id="bio"
+                  placeholder="Tell us about yourself and your experience"
+                  value={profile.bio || ""}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="expectedPay">Expected Pay (per hour)</Label>
+                <Label htmlFor="expectedPay">Expected Pay (₹ per hour)</Label>
                 <Input
                   id="expectedPay"
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="0.00"
-                  value={profile.expected_pay_per_hour || ""}
+                  placeholder="500.00"
+                  value={profile.expectedPayPerHour || ""}
                   onChange={(e) =>
-                    setProfile({ ...profile, expected_pay_per_hour: parseFloat(e.target.value) })
+                    setProfile({ ...profile, expectedPayPerHour: parseFloat(e.target.value) })
                   }
                 />
               </div>
@@ -253,4 +234,4 @@ const WorkerProfile = () => {
   );
 };
 
-export default WorkerProfile;
+export default WorkerProfileFirebase;

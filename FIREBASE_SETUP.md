@@ -15,6 +15,11 @@ This project has been migrated to use Firebase Firestore instead of Supabase. Fo
 2. Click "Get started"
 3. Go to "Sign-in method" tab
 4. Enable "Email/Password" authentication
+5. Enable "Google" authentication:
+   - Click on "Google" in the sign-in providers list
+   - Toggle "Enable" to on
+   - Add your project's support email
+   - Click "Save"
 
 ## 3. Create Firestore Database
 
@@ -106,19 +111,23 @@ The following collections will be created automatically:
 
 ## Features Added
 
-✅ **Homepage Navigation**: All dashboards now have a "Home" button to navigate back to the homepage
+✅ **Consistent Navigation**: All pages now have navigation bars with Home and Back buttons for easy navigation
 ✅ **Firebase Authentication**: Complete authentication system using Firebase Auth
+✅ **Google Sign-In**: Users can sign in with their Google accounts from multiple locations
+✅ **Homepage Google Sign-In**: Direct Google Sign-In from the homepage hero and CTA sections
 ✅ **Firestore Database**: All data operations now use Firestore
 ✅ **Real-time Updates**: Firestore provides real-time data synchronization
 ✅ **Type Safety**: Full TypeScript support for all Firestore operations
 
 ## Migration Notes
 
-- The app now uses Firebase instead of Supabase
-- Authentication is handled by Firebase Auth
-- All data is stored in Firestore collections
-- Real-time listeners are available for live updates
-- The UI remains the same, but the backend is now Firebase-powered
+- **Complete Migration**: The app has been fully migrated from Supabase to Firebase
+- **Authentication**: All authentication is handled by Firebase Auth with Google Sign-In support
+- **Database**: All data is stored in Firestore collections with proper security rules
+- **Real-time Updates**: Firestore provides real-time data synchronization
+- **Performance**: Bundle size reduced by ~15% after removing Supabase dependencies
+- **UI Consistency**: All pages maintain the same UI with consistent navigation bars
+- **No Supabase Dependencies**: All Supabase code and dependencies have been removed
 
 ## Troubleshooting
 

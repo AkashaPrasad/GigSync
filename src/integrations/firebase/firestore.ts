@@ -74,14 +74,38 @@ export interface JobApplication {
   acceptedAt?: Timestamp;
 }
 
+export interface JobRequest {
+  id: string;
+  workerId: string;
+  title: string;
+  description: string;
+  hours: number;
+  minPay: number;
+  maxPay: number;
+  skills: string[];
+  location?: string;
+  urgency: 'low' | 'medium' | 'high';
+  status: 'pending' | 'accepted' | 'rejected';
+  acceptedBy?: string; // vendorId who accepted
+  createdAt: Timestamp;
+  acceptedAt?: Timestamp;
+}
+
 // User operations
 export const createUser = async (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => {
-  const userRef = await addDoc(collection(db, 'users'), {
-    ...userData,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  return userRef.id;
+  try {
+    console.log('Creating user in Firestore:', userData);
+    const userRef = await addDoc(collection(db, 'users'), {
+      ...userData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('User created in Firestore with ID:', userRef.id);
+    return userRef.id;
+  } catch (error) {
+    console.error('Error creating user in Firestore:', error);
+    throw error;
+  }
 };
 
 export const getUser = async (userId: string): Promise<User | null> => {
@@ -175,23 +199,25 @@ export const getJobs = async (): Promise<Job[]> => {
 };
 
 export const getJobsByVendor = async (vendorId: string): Promise<Job[]> => {
-  const q = query(
-    collection(db, 'jobs'), 
-    where('vendorId', '==', vendorId),
-    orderBy('createdAt', 'desc')
-  );
+  // Get all jobs and filter/sort in memory to avoid index requirement
+  const q = query(collection(db, 'jobs'));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+  const jobs = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as Job))
+    .filter(job => job.vendorId === vendorId)
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  return jobs;
 };
 
 export const getOpenJobs = async (): Promise<Job[]> => {
-  const q = query(
-    collection(db, 'jobs'), 
-    where('status', '==', 'open'),
-    orderBy('createdAt', 'desc')
-  );
+  // First get all jobs, then filter and sort in memory to avoid index requirement
+  const q = query(collection(db, 'jobs'));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+  const jobs = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as Job))
+    .filter(job => job.status === 'open')
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  return jobs;
 };
 
 export const updateJob = async (jobId: string, updates: Partial<Job>) => {
@@ -212,23 +238,25 @@ export const createJobApplication = async (applicationData: Omit<JobApplication,
 };
 
 export const getJobApplications = async (workerId: string): Promise<JobApplication[]> => {
-  const q = query(
-    collection(db, 'jobApplications'), 
-    where('workerId', '==', workerId),
-    orderBy('appliedAt', 'desc')
-  );
+  // Get all applications and filter/sort in memory to avoid index requirement
+  const q = query(collection(db, 'jobApplications'));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobApplication));
+  const applications = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as JobApplication))
+    .filter(app => app.workerId === workerId)
+    .sort((a, b) => b.appliedAt.toMillis() - a.appliedAt.toMillis());
+  return applications;
 };
 
 export const getJobApplicationsByJob = async (jobId: string): Promise<JobApplication[]> => {
-  const q = query(
-    collection(db, 'jobApplications'), 
-    where('jobId', '==', jobId),
-    orderBy('appliedAt', 'desc')
-  );
+  // Get all applications and filter/sort in memory to avoid index requirement
+  const q = query(collection(db, 'jobApplications'));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobApplication));
+  const applications = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as JobApplication))
+    .filter(app => app.jobId === jobId)
+    .sort((a, b) => b.appliedAt.toMillis() - a.appliedAt.toMillis());
+  return applications;
 };
 
 export const updateJobApplication = async (applicationId: string, updates: Partial<JobApplication>) => {
@@ -236,6 +264,65 @@ export const updateJobApplication = async (applicationId: string, updates: Parti
   await updateDoc(applicationRef, {
     ...updates,
     ...(updates.status === 'accepted' && { acceptedAt: serverTimestamp() })
+  });
+};
+
+// Job Request operations
+export const createJobRequest = async (requestData: Omit<JobRequest, 'id' | 'createdAt' | 'acceptedAt'>) => {
+  const requestRef = await addDoc(collection(db, 'jobRequests'), {
+    ...requestData,
+    createdAt: serverTimestamp()
+  });
+  return requestRef.id;
+};
+
+export const getJobRequests = async (): Promise<JobRequest[]> => {
+  const q = query(collection(db, 'jobRequests'), orderBy('createdAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as JobRequest));
+};
+
+export const getJobRequestsByWorker = async (workerId: string): Promise<JobRequest[]> => {
+  const q = query(collection(db, 'jobRequests'));
+  const querySnapshot = await getDocs(q);
+  const requests = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as JobRequest))
+    .filter(request => request.workerId === workerId)
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  return requests;
+};
+
+export const getPendingJobRequests = async (): Promise<JobRequest[]> => {
+  const q = query(collection(db, 'jobRequests'));
+  const querySnapshot = await getDocs(q);
+  const requests = querySnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as JobRequest))
+    .filter(request => request.status === 'pending')
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  return requests;
+};
+
+export const updateJobRequest = async (requestId: string, updates: Partial<JobRequest>) => {
+  const requestRef = doc(db, 'jobRequests', requestId);
+  await updateDoc(requestRef, {
+    ...updates,
+    updatedAt: serverTimestamp()
+  });
+};
+
+export const acceptJobRequest = async (requestId: string, vendorId: string) => {
+  const requestRef = doc(db, 'jobRequests', requestId);
+  await updateDoc(requestRef, {
+    status: 'accepted',
+    acceptedBy: vendorId,
+    acceptedAt: serverTimestamp()
+  });
+};
+
+export const rejectJobRequest = async (requestId: string) => {
+  const requestRef = doc(db, 'jobRequests', requestId);
+  await updateDoc(requestRef, {
+    status: 'rejected'
   });
 };
 
@@ -249,13 +336,13 @@ export const subscribeToJobs = (callback: (jobs: Job[]) => void) => {
 };
 
 export const subscribeToUserJobs = (vendorId: string, callback: (jobs: Job[]) => void) => {
-  const q = query(
-    collection(db, 'jobs'), 
-    where('vendorId', '==', vendorId),
-    orderBy('createdAt', 'desc')
-  );
+  // Use simple query and filter in memory to avoid index requirement
+  const q = query(collection(db, 'jobs'));
   return onSnapshot(q, (querySnapshot) => {
-    const jobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+    const jobs = querySnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Job))
+      .filter(job => job.vendorId === vendorId)
+      .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
     callback(jobs);
   });
 };

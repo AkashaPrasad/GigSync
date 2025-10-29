@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# GigSync - Gig Economy Platform
 
 ## Project info
 

@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { onAuthStateChange, getCurrentUserData } from "@/integrations/firebase/auth";
+import { onAuthStateChange, getCurrentUserData, signInWithGoogle } from "@/integrations/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Briefcase, CheckCircle2, MapPin, Star, Users } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 import { User } from "@/integrations/firebase/firestore";
+import { toast } from "sonner";
+import Navigation from "@/components/Navigation";
+import Logo from "@/components/Logo";
 
 const IndexFirebase = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -21,13 +26,7 @@ const IndexFirebase = () => {
             const userData = await getCurrentUserData();
             setUser(userData);
             
-            if (userData) {
-              if (userData.role === "gig_worker") {
-                navigate("/worker/dashboard", { replace: true });
-              } else if (userData.role === "vendor") {
-                navigate("/vendor/dashboard", { replace: true });
-              }
-            }
+            // Removed automatic redirect to dashboard - users can stay on homepage
           } else {
             setUser(null);
           }
@@ -43,6 +42,54 @@ const IndexFirebase = () => {
 
     checkAuth();
   }, [navigate]);
+
+  const handleGoogleSignIn = async () => {
+    setIsSigningIn(true);
+    try {
+      const userCredential = await signInWithGoogle();
+      const user = userCredential.user;
+
+      if (user) {
+        // Get user role from Firestore
+        const { getUserByEmail } = await import("@/integrations/firebase/firestore");
+        const userData = await getUserByEmail(user.email!);
+        
+        if (userData) {
+          // Check if user has a profile, if not create one
+          const { getProfile, getVendorProfile, createProfile, createVendorProfile } = await import("@/integrations/firebase/firestore");
+          const profile = await getProfile(user.uid);
+          const vendorProfile = await getVendorProfile(user.uid);
+          
+          if (!profile && !vendorProfile) {
+            // First time Google sign-in, create default profile
+            if (userData.role === "gig_worker") {
+              await createProfile({
+                userId: user.uid,
+                fullName: user.displayName || user.email!.split('@')[0],
+                rating: 0,
+                totalJobsCompleted: 0,
+                expectedPayPerHour: 0,
+                experienceLevel: "Beginner"
+              });
+            } else {
+              await createVendorProfile({
+                userId: user.uid,
+                fullName: user.displayName || user.email!.split('@')[0],
+                companyName: user.displayName || user.email!.split('@')[0]
+              });
+            }
+          }
+          
+          toast.success("Signed in successfully!");
+          navigate(userData.role === "gig_worker" ? "/worker/dashboard" : "/vendor/dashboard", { replace: true });
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred");
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   const features = [
     {
@@ -81,12 +128,25 @@ const IndexFirebase = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <Navigation 
+        showBackButton={false} 
+        showLogoutButton={false} 
+        showSettingsButton={false}
+        showPostJobButton={false}
+        showProfileButton={true}
+        profilePath="/auth"
+      />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-hero opacity-90" />
         <div className="relative container mx-auto px-4 py-20 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 text-white">
+              <div className="flex justify-center lg:justify-start">
+                <Logo size="lg" />
+              </div>
               <Badge variant="secondary" className="w-fit">
                 Connecting Workers & Employers
               </Badge>
@@ -99,7 +159,7 @@ const IndexFirebase = () => {
                 The modern platform connecting skilled gig workers with quality job opportunities.
                 Sign up today and experience seamless hiring or finding your next gig.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="space-y-4">
                 <Button
                   size="lg"
                   variant="secondary"
@@ -107,14 +167,6 @@ const IndexFirebase = () => {
                   className="text-lg px-8"
                 >
                   Get Started
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => navigate("/auth")}
-                  className="text-lg px-8 bg-white/10 text-white border-white hover:bg-white hover:text-primary"
-                >
-                  Learn More
                 </Button>
               </div>
             </div>
@@ -133,7 +185,7 @@ const IndexFirebase = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-5xl font-bold mb-4">Why Choose GigConnect?</h2>
+            <h2 className="text-3xl lg:text-5xl font-bold mb-4">Why Choose GigSync?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               A platform built for the modern workforce with features that matter
             </p>
@@ -181,21 +233,24 @@ const IndexFirebase = () => {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             Join thousands of workers and employers building successful partnerships
           </p>
-          <Button
-            size="lg"
-            variant="secondary"
-            onClick={() => navigate("/auth")}
-            className="text-lg px-12"
-          >
-            Sign Up Now
-          </Button>
+          <div className="space-y-4">
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate("/auth")}
+              className="text-lg px-12"
+            >
+              Sign Up Now
+            </Button>
+            
+          </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t py-8 bg-card">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2024 GigConnect. All rights reserved.</p>
+          <p>© 2024 GigSync. All rights reserved.</p>
         </div>
       </footer>
     </div>
