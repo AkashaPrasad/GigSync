@@ -29,34 +29,20 @@ Offering transparent payment tracking and in-app chat support for project update
 
 ⚙️ Tech Stack
 
-Frontend: Flutter
+Frontend: HTML, TAILWIND CSS, TYPESCRIPT, REACT
 
-Backend: Node.js + Express
+Backend: Node.js
 
-Database: MongoDB
+Database: Firebase Firestore
 
-APIs Used: DigiLocker API, Google Maps API (for location-based matches)
+APIs Used: DigiLocker API(DEVELOPMENT) , Google Maps API (for location-based matches)
 
-Authentication: JWT / OAuth
+Authentication: Firebase Auth
 
-Hosting: Firebase or Render
-
-🤖 Matching Algorithm (Beginner Friendly)
-
-GigSync uses a weighted-score algorithm to match workers with vendors:
-
-Match Score = (SkillMatch × 0.5) + (DistanceFactor × 0.2) + (Rating × 0.2) + (Availability × 0.1)
+Hosting: Vercel
 
 
-SkillMatch: Based on keyword and certificate comparison.
-
-DistanceFactor: Uses map radius to prefer nearby gigs.
-
-Rating: Previous job feedback.
-
-Availability: Checks time slots and work status.
-
-🔐 Verification System
+🔐 Verification System ( COMING SOON ) 
 
 Integrates DigiLocker API to verify Aadhaar-linked credentials for free.
 
@@ -70,13 +56,7 @@ Vendor and worker profiles with verified badges.
 
 Smart gig recommendations based on skill and location.
 
-Real-time chat between vendors and workers.
-
-Secure payments and transparent contracts.
-
 Review and rating system for both sides.
-
-Multi-language support for low-literacy users.
 
 🌍 Impact
 
@@ -98,10 +78,3 @@ Integration with UPI for instant payments.
 
 Voice-based onboarding for low-literacy users.
 
-👥 Team
-
-Founder: [Your Name]
-
-Developers: [Your Team / College Name if applicable]
-
-Location: North Karnataka, India
