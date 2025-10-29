@@ -1,73 +1,107 @@
-# GigSync - Gig Economy Platform
+GigSync – Connecting Vendors and Gig Workers
+🧩 Overview
 
-## Project info
+GigSync is a platform that bridges the gap between vendors and gig workers by enabling secure, skill-based matching, verified identities, and transparent payments. It aims to empower India’s informal workforce by offering digital credibility and fair opportunities through verified profiles and AI-assisted matching.
 
-**URL**: https://lovable.dev/projects/5eabb9c8-f321-4f73-a33a-804dfc8cec8c
+🚀 Problem Statement
 
-## How can I edit this code?
+In India’s gig economy, many workers lack verified digital credentials, have limited digital literacy, and rely on informal networks to find jobs. This leads to:
 
-There are several ways of editing your application.
+Unfair pay and exploitation.
 
-**Use Lovable**
+Lack of verified skill records.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5eabb9c8-f321-4f73-a33a-804dfc8cec8c) and start prompting.
+No central platform for job–skill matching.
 
-Changes made via Lovable will be committed automatically to this repo.
+Distrust between vendors and workers.
 
-**Use your preferred IDE**
+💡 Solution
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also reflected in Lovable.
+GigSync solves these problems by:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Using DigiLocker API for free, government-verified digital identity and skill certificates.
 
-Follow these steps:
+Creating a matching algorithm that connects vendors and workers based on skills, location, ratings, and past performance.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Providing verified badges and trust scores for both vendors and workers.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Offering transparent payment tracking and in-app chat support for project updates.
 
-# Step 3: Install the necessary dependencies.
-npm i
+⚙️ Tech Stack
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Frontend: Flutter
 
-**Edit a file directly in GitHub**
+Backend: Node.js + Express
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Database: MongoDB
 
-**Use GitHub Codespaces**
+APIs Used: DigiLocker API, Google Maps API (for location-based matches)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Authentication: JWT / OAuth
 
-## What technologies are used for this project?
+Hosting: Firebase or Render
 
-This project is built with:
+🤖 Matching Algorithm (Beginner Friendly)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+GigSync uses a weighted-score algorithm to match workers with vendors:
 
-## How can I deploy this project?
+Match Score = (SkillMatch × 0.5) + (DistanceFactor × 0.2) + (Rating × 0.2) + (Availability × 0.1)
 
-Simply open [Lovable](https://lovable.dev/projects/5eabb9c8-f321-4f73-a33a-804dfc8cec8c) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+SkillMatch: Based on keyword and certificate comparison.
 
-Yes, you can!
+DistanceFactor: Uses map radius to prefer nearby gigs.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Rating: Previous job feedback.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Availability: Checks time slots and work status.
+
+🔐 Verification System
+
+Integrates DigiLocker API to verify Aadhaar-linked credentials for free.
+
+Issues a “Verified Badge” on successful authentication.
+
+Reduces fraud and increases vendor–worker trust.
+
+📱 Key Features
+
+Vendor and worker profiles with verified badges.
+
+Smart gig recommendations based on skill and location.
+
+Real-time chat between vendors and workers.
+
+Secure payments and transparent contracts.
+
+Review and rating system for both sides.
+
+Multi-language support for low-literacy users.
+
+🌍 Impact
+
+Promotes fair pay and digital inclusion.
+
+Builds trust in India’s gig economy.
+
+Enables workers to grow careers through verified credentials.
+
+Helps vendors find reliable, verified professionals easily.
+
+🔮 Future Scope
+
+AI-based gig suggestions and fraud detection.
+
+Partnership with government skilling programs (NSDC, Skill India).
+
+Integration with UPI for instant payments.
+
+Voice-based onboarding for low-literacy users.
+
+👥 Team
+
+Founder: [Your Name]
+
+Developers: [Your Team / College Name if applicable]
+
+Location: North Karnataka, India
